@@ -7,7 +7,32 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Bell } from "lucide-react";
+import { useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/SupabaseConnection";
+
 const NotificationSettings = () => {
+  const [email,setemail] = useState();
+  const patientid = useParams();
+  const id = patientid.id;
+  
+  useEffect(()=>{
+    const fetchData = async()=>{
+      try{
+        const {data,error} = await supabase.from('Users').select('*').eq('id',id).eq('role','patient').single();
+        // console.log(data);
+        // console.log(data.assignee);
+        if(data.assignee){
+          const CaretakerData = await supabase.from('Users').select('*').eq('id',data.assignee).single();
+          setemail(CaretakerData.data.email);
+          
+        }
+      }catch(error){
+        console.log(error);
+      }
+    }
+    fetchData();
+  },[])
   const [settings, setSettings] = useState({
     emailNotifications: true,
     emailAddress: "caretaker@example.com",
@@ -52,7 +77,7 @@ const NotificationSettings = () => {
             {settings.emailNotifications && <div className="ml-6 space-y-3">
                 <div>
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" value={settings.emailAddress} onChange={e => handleSettingChange("emailAddress", e.target.value)} className="mt-1" />
+                  <Input id="email" type="email" value={email} onChange={e => handleSettingChange("emailAddress", e.target.value)} className="mt-1" />
                 </div>
               </div>}
           </div>

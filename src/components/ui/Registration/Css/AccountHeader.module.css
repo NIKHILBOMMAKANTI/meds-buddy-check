@@ -1,0 +1,30 @@
+.cardheader {
+  background: rgb(22, 163, 74);
+  color: white;
+  text-align: center;
+  padding: 40px 20px 30px;
+}
+
+.cardheader h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  letter-spacing: -0.5px;
+}
+
+.cardheader p {
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 0;
+  font-weight: 400;
+}
+
+@media (max-width: 600px) {
+  .cardheader {
+    padding: 30px 20px 25px;
+  }
+
+  .cardheader h1 {
+    font-size: 24px;
+  }
+}

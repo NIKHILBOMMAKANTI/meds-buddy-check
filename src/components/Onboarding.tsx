@@ -2,12 +2,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, User, Heart } from "lucide-react";
+import { Link } from "react-router-dom";
 
-interface OnboardingProps {
-  onComplete: (userType: "patient" | "caretaker") => void;
-}
+// interface OnboardingProps {
+//   onComplete: (userType: "patient" | "caretaker") => void;
+// }
 
-const Onboarding = ({ onComplete }: OnboardingProps) => {
+const Onboarding = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-6">
       <div className="max-w-4xl w-full">
@@ -53,12 +54,13 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
                   Large, easy-to-use interface
                 </li>
               </ul>
+              <Link to="/PatientLogin">
               <Button 
                 className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
-                onClick={() => onComplete("patient")}
               >
                 Continue as Patient
               </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -91,12 +93,14 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
                   Receive email alerts
                 </li>
               </ul>
+              <Link to="/Register">
               <Button 
                 className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-3 text-lg"
-                onClick={() => onComplete("caretaker")}
+              
               >
                 Continue as Caretaker
               </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

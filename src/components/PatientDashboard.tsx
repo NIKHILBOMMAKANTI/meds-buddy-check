@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -7,16 +7,52 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Calendar as CalendarIcon, Image, User } from "lucide-react";
 import MedicationTracker from "./MedicationTracker";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
+import Nav from "./ui/Nav";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/SupabaseConnection";
 
 const PatientDashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [takenDates, setTakenDates] = useState<Set<string>>(new Set());
+  const [medicationLogs, setMedicationLogs] = useState<any[]>([]); // New state for medication logs
+  const patientid = useParams();
+  const id = patientid.id;
 
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const isTodaySelected = isToday(selectedDate);
   const isSelectedDateTaken = takenDates.has(selectedDateStr);
+
+  useEffect(() => {
+    const fetchMedicationLogs = async () => {
+      const { data, error } = await supabase
+        .from("MedicationLogs")
+        .select("*")
+        .eq("patient_id", id);
+
+      if (error) {
+        console.error("Error fetching medication logs:", error);
+        return;
+      }
+
+      setMedicationLogs(data || []); // Set the fetched logs
+
+      // Populate takenDates from fetched logs
+      const datesTaken = new Set<string>();
+      data?.forEach((log: any) => {
+        if (log.taken) {
+          datesTaken.add(format(new Date(log.date), "yyyy-MM-dd"));
+        }
+      });
+      console.log(datesTaken);
+      setTakenDates(datesTaken);
+    };
+
+    if (id) {
+      fetchMedicationLogs();
+    }
+  }, [id]); // Re-fetch when patient ID changes
 
   const handleMarkTaken = (date: string, imageFile?: File) => {
     setTakenDates(prev => new Set(prev).add(date));
@@ -30,36 +66,77 @@ const PatientDashboard = () => {
     let streak = 0;
     let currentDate = new Date(today);
     
-    while (takenDates.has(format(currentDate, 'yyyy-MM-dd')) && streak < 30) {
-      streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
-    }
+    // while (takenDates.has(format(currentDate, 'yyyy-MM-dd')) && streak < 30) {
+    //   streak++;
+    //   currentDate.setDate(currentDate.getDate() - 1);
+    // }
     
+    // return streak;
+
+    // Iterate backwards from today to count consecutive taken days
+    for (let i = 0; i < 30; i++) {
+      const dateStr = format(currentDate, "yyyy-MM-dd");
+      if (takenDates.has(dateStr)) {
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else if (isBefore(currentDate, startOfDay(today)) && !takenDates.has(dateStr)) {
+        // If it's a past day and not taken, the streak breaks
+        break;
+      } else {
+        // If it's today or a future day and not taken, don't break the streak (it might still be taken)
+        // This part might need adjustment based on how you define a "broken streak" for today/future
+        break; // For simplicity, break if today isn't taken yet
+      }
+    }
     return streak;
+
   };
 
-  const getDayClassName = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+  // const getDayClassName = (date: Date) => {
+  //   const dateStr = format(date, 'yyyy-MM-dd');
+  //   const isPast = isBefore(date, startOfDay(today));
+  //   const isCurrentDay = isToday(date);
+  //   const isTaken = takenDates.has(dateStr);
+    
+  //   let className = "";
+    
+  //   if (isCurrentDay) {
+  //     className += " bg-blue-100 border-blue-300 ";
+  //   }
+    
+  //   if (isTaken) {
+  //     className += " bg-green-100 text-green-800 ";
+  //   } else if (isPast) {
+  //     className += " bg-red-50 text-red-600 ";
+  //   }
+    
+  //   return className;
+  // };
+const getDayClassName = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
     const isPast = isBefore(date, startOfDay(today));
     const isCurrentDay = isToday(date);
     const isTaken = takenDates.has(dateStr);
-    
+
     let className = "";
-    
+
     if (isCurrentDay) {
       className += " bg-blue-100 border-blue-300 ";
     }
-    
+
     if (isTaken) {
       className += " bg-green-100 text-green-800 ";
-    } else if (isPast) {
+    } else if (isPast && !isTaken) {
+      // Apply red for missed medication in the past
       className += " bg-red-50 text-red-600 ";
     }
-    
+
     return className;
   };
-
   return (
+    <>
+    <Nav/>
+    <main className="max-w-6xl mx-auto p-6">
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-500 to-green-500 rounded-2xl p-8 text-white">
@@ -168,6 +245,8 @@ const PatientDashboard = () => {
         </div>
       </div>
     </div>
+    </main>
+    </>
   );
 };
 

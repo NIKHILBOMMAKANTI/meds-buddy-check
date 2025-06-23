@@ -53,9 +53,9 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-6">
+      {/* <main className="max-w-6xl mx-auto p-6">
         {userType === "patient" ? <PatientDashboard /> : <CaretakerDashboard />}
-      </main>
+      </main> */}
     </div>
   );
 };
