@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import {Users,Bell,Calendar as CalendarIcon,Mail,AlertTriangle,Check,Clock,Camera,} from "lucide-react";
+import {Users,Bell,Calendar as CalendarIcon,Mail,AlertTriangle,Check,Clock,Camera, CaptionsOff,} from "lucide-react";
 import NotificationSettings from "./NotificationSettings";
 import { format, subDays, isToday, isBefore, startOfDay } from "date-fns";
 import Nav from "./ui/Nav";
@@ -26,6 +26,8 @@ const CaretakerDashboard = () => {
   const [medicatioLogsData, setMedicationLogsData] = useState([]);
   const [patientname, setPatientname] = useState();
   const [takenDays,setTakenDays] = useState(0);
+  const [remainingDays,setRemainingDays] = useState();
+  const [AdherenceRate,setAdherenceRate] = useState();
   const [takendates, setTakenDates] = useState(new Set());
   const [dailyMedication,setDailyMedication] = useState( {
     name: "Daily Medication Set",
@@ -34,11 +36,12 @@ const CaretakerDashboard = () => {
   })
   // Mock data for demonstration
   const patientName = patientname;
-  const adherenceRate = 85;
+  const adherenceRate = AdherenceRate;
   const currentStreak = streakCount;
   const missedDoses = MissedDays;
   const takenDoses = takenDays
-
+  const RemainingDays = remainingDays;
+ 
   // Mock data for taken medications (same as in PatientDashboard)
   const takenDates = new Set([
     "2024-06-10",
@@ -124,30 +127,30 @@ const CaretakerDashboard = () => {
 
     }
     getCurrentStreak();
-    const getMissedStreak = async ()=> {
+    const calculateMedicationStats = async ()=> {
       const UsersMedicationData = await supabase.from('Medications').select('*').eq('patient_id',id)
       const patientMedications = UsersMedicationData.data;
       const MedicationsDates = new Set(patientMedications.map((medication)=>medication.start_date));
+      const MedicationsEnddates = new Set(patientMedications.map((medication)=>medication.end_date));
       const  SortedDates = [...MedicationsDates].sort((a,b)=>a-b);
-      //console.log("Sorted DAtes" ,SortedDates);
+      const EndDates = [...MedicationsEnddates].sort((a,b)=> b-a);
       const today = new Date()
       const startDate = new Date(SortedDates[0]);
+      const EndDate = new Date(EndDates[0]);
       const msDiff = today.getTime() - startDate.getTime();
-      console.log("msDiff" ,msDiff)
       const days = Math.floor(msDiff/(1000 * 60 * 60 * 24))
-      console.log(datesTaken)
       const totalTakenDays = [...datesTaken].length
-      console.log("Days",days)
-      console.log("totalTakenDays",totalTakenDays);
-      const totalDays = days - totalTakenDays
-     console.log("TotalMissedDays",totalDays)
-      setMissedDays(totalDays);
-      setTakenDays(totalTakenDays)
-      
-      // console.log("totalDays",days);
-      // console.log("Medications Data" , MedicationsDates);
+      const totalMissedDays = days - totalTakenDays
+      const TotalPrescribedDays = Math.floor((EndDate.getTime() - startDate.getTime())/(1000 * 60 * 60 * 24))
+      const pendingMedicationDays = TotalPrescribedDays - totalMissedDays - totalTakenDays
+      const AdherenceRate = (totalTakenDays)/(TotalPrescribedDays) * 100;
+      setMissedDays(totalMissedDays);
+      setTakenDays(totalTakenDays);
+      setAdherenceRate(AdherenceRate);
+      setRemainingDays(pendingMedicationDays);
+
     }
-    getMissedStreak();
+    calculateMedicationStats();
 
     };
     fetchData();
@@ -309,16 +312,16 @@ const CaretakerDashboard = () => {
                     <div className="grid grid-cols-3 gap-4 text-center text-sm">
                       <div>
                         <div className="font-medium text-green-600">
-                          22 days
+                          {takenDoses} days
                         </div>
                         <div className="text-muted-foreground">Taken</div>
                       </div>
                       <div>
-                        <div className="font-medium text-red-600">3 days</div>
+                        <div className="font-medium text-red-600">{missedDoses} days</div>
                         <div className="text-muted-foreground">Missed</div>
                       </div>
                       <div>
-                        <div className="font-medium text-blue-600">5 days</div>
+                        <div className="font-medium text-blue-600">{RemainingDays} days</div>
                         <div className="text-muted-foreground">Remaining</div>
                       </div>
                     </div>
