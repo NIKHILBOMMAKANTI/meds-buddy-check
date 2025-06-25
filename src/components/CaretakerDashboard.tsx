@@ -7,33 +7,37 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Users,
-  Bell,
-  Calendar as CalendarIcon,
-  Mail,
-  AlertTriangle,
-  Check,
-  Clock,
-  Camera,
-} from "lucide-react";
+import {Users,Bell,Calendar as CalendarIcon,Mail,AlertTriangle,Check,Clock,Camera,} from "lucide-react";
 import NotificationSettings from "./NotificationSettings";
 import { format, subDays, isToday, isBefore, startOfDay } from "date-fns";
 import Nav from "./ui/Nav";
 import MedicationForm from "./ui/CaretakerDashboard/MedicationForm";
 import MedicationHistory from "./ui/CaretakerDashboard/Medication History";
 import { supabase } from "@/SupabaseConnection";
+type TakenDate = {
+  date: string;
+  taken: boolean;
+};
 const CaretakerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [streakCount,setCurrentStreak] = useState(0);
+  const [MissedDays,setMissedDays] = useState(0);
   const [medicatioLogsData, setMedicationLogsData] = useState([]);
-  const [patientname,setPatientname] = useState();
-  const [takendates, setTakenDates] = useState({});
+  const [patientname, setPatientname] = useState();
+  const [takenDays,setTakenDays] = useState(0);
+  const [takendates, setTakenDates] = useState(new Set());
+  const [dailyMedication,setDailyMedication] = useState( {
+    name: "Daily Medication Set",
+    time: "8:00 AM",
+    status: "pending"
+  })
   // Mock data for demonstration
   const patientName = patientname;
   const adherenceRate = 85;
-  const currentStreak = 5;
-  const missedDoses = 3;
+  const currentStreak = streakCount;
+  const missedDoses = MissedDays;
+  const takenDoses = takenDays
 
   // Mock data for taken medications (same as in PatientDashboard)
   const takenDates = new Set([
@@ -55,14 +59,7 @@ const CaretakerDashboard = () => {
     { date: "2024-06-06", taken: true, time: "8:20 AM", hasPhoto: false },
   ];
 
-  const dailyMedication = {
-    name: "Daily Medication Set",
-    time: "8:00 AM",
-    status: takenDates.has(format(new Date(), "yyyy-MM-dd"))
-      ? "completed"
-      : "pending",
-  };
-
+ 
   const handleSendReminderEmail = () => {
     console.log("Sending reminder email to patient...");
     // Here you would implement email sending functionality
@@ -95,13 +92,66 @@ const CaretakerDashboard = () => {
         }
       });
 
-      const Patientdata = await supabase.from("Users").select("*").eq("id",id);
+      const Patientdata = await supabase.from("Users").select("*").eq("id", id);
       const Patientusername = Patientdata.data[0].username;
       setPatientname(Patientusername);
-      setTakenDates(datesTaken);
-      console.log(datesTaken);
+      setTakenDates(datesTaken);   
+      const todaysDate = format(new Date(), "yyyy-MM-dd")
+      const todaysPatientLogs = data.filter((patientdata)=>{
+        const date = format(new Date(patientdata.date), "yyyy-MM-dd");
+        return date === todaysDate
+      })
+     const Status = (todaysPatientLogs.every((data)=>data.taken == true) && (todaysPatientLogs.length > 0))?'completed':'pending'
+     setDailyMedication((prev)=>({...prev,status:Status}))
+
+     const getCurrentStreak = ()=>{
+      let streak = 0;
+      let currentDate = new Date()
+      console.log("Getting From Strak:",datesTaken);
+      for(let i=0;i<=30;i++){
+        const dateStr = format(currentDate,"yyyy-MM-dd")
+        if(datesTaken.has(dateStr)){
+          streak++;
+          currentDate.setDate(currentDate.getDate() - 1);
+        }else{
+          break;
+        }
+      }
+      console.log("Streak",streak)
+      setCurrentStreak(streak);
+      return streak;
+      
+
+    }
+    getCurrentStreak();
+    const getMissedStreak = async ()=> {
+      const UsersMedicationData = await supabase.from('Medications').select('*').eq('patient_id',id)
+      const patientMedications = UsersMedicationData.data;
+      const MedicationsDates = new Set(patientMedications.map((medication)=>medication.start_date));
+      const  SortedDates = [...MedicationsDates].sort((a,b)=>a-b);
+      //console.log("Sorted DAtes" ,SortedDates);
+      const today = new Date()
+      const startDate = new Date(SortedDates[0]);
+      const msDiff = today.getTime() - startDate.getTime();
+      console.log("msDiff" ,msDiff)
+      const days = Math.floor(msDiff/(1000 * 60 * 60 * 24))
+      console.log(datesTaken)
+      const totalTakenDays = [...datesTaken].length
+      console.log("Days",days)
+      console.log("totalTakenDays",totalTakenDays);
+      const totalDays = days - totalTakenDays
+     console.log("TotalMissedDays",totalDays)
+      setMissedDays(totalDays);
+      setTakenDays(totalTakenDays)
+      
+      // console.log("totalDays",days);
+      // console.log("Medications Data" , MedicationsDates);
+    }
+    getMissedStreak();
+
     };
     fetchData();
+    
   }, []);
   const getDayClassName = (date) => {
     const today = new Date();
@@ -152,11 +202,11 @@ const CaretakerDashboard = () => {
               </div>
               <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
                 <div className="text-2xl font-bold">{missedDoses}</div>
-                <div className="text-white/80">Missed This Month</div>
+                <div className="text-white/80">Missed </div>
               </div>
               <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
                 <div className="text-2xl font-bold">
-                  {recentActivity.filter((a) => a.taken).length}
+                {takenDoses}
                 </div>
                 <div className="text-white/80">Taken This Week</div>
               </div>
@@ -381,7 +431,30 @@ const CaretakerDashboard = () => {
                       </div>
                     ))}
                   </div> */}
-                  
+                  {medicatioLogsData.map((item) => {
+                    console.log(item);
+                    console.log(takendates);
+                    console.log([...takendates]);
+                    const relevantSets = [...takendates].filter(
+                      (date:string) => date === item.date
+                    );
+                    console.log(relevantSets);
+                    const allTaken = relevantSets.every(
+                      (set: TakenDate) => set.taken === true
+
+                    );
+                    console.log(allTaken);
+                    if (allTaken && relevantSets.length > 0) {
+                      return (
+                        <div className="card" key={item.date}>
+                          <p>Date: {item.date}</p>
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })}
+                 
                 </CardContent>
               </Card>
             </TabsContent>

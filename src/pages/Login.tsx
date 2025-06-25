@@ -32,6 +32,17 @@ const Registration: React.FC = () => {
         });
         return;
       }
+      const UsersData = await supabase.from('Users').select('*').eq('email',email).single()
+      console.log(UsersData.data);
+      if(UsersData.data.role === 'patient'){
+        Swal.fire({
+          icon: "error",
+          title:"Permission Denied",
+          text: `You are not authorized to view this content`,
+          confirmButtonColor: "rgb(22, 163, 74)",
+        });
+        return;
+      }
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

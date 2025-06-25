@@ -80,12 +80,9 @@ const PatientDashboard = () => {
         streak++;
         currentDate.setDate(currentDate.getDate() - 1);
       } else if (isBefore(currentDate, startOfDay(today)) && !takenDates.has(dateStr)) {
-        // If it's a past day and not taken, the streak breaks
         break;
       } else {
-        // If it's today or a future day and not taken, don't break the streak (it might still be taken)
-        // This part might need adjustment based on how you define a "broken streak" for today/future
-        break; // For simplicity, break if today isn't taken yet
+        break;
       }
     }
     return streak;
