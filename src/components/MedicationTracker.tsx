@@ -31,10 +31,12 @@ const MedicationTracker = ({
 
   useEffect(() => {
     const fetchData = async () => {
+      const todaysDate = new Date().toISOString().split("T")[0];
+      console.log("TodaysDate",todaysDate);
       const { data, error } = await supabase
         .from("Medications")
         .select("*")
-        .eq("patient_id", id);
+        .eq("patient_id", id).lte("start_date", todaysDate).gte("end_date", todaysDate);;
       setMedicationData(data);
       const medicationLogs = await supabase
         .from("MedicationLogs")

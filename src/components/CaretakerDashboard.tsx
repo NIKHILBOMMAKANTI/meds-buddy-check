@@ -144,11 +144,14 @@ const CaretakerDashboard = () => {
         const MedicationsEnddates = new Set(
           patientMedications.map((medication) => medication.end_date)
         );
+        console.log("MedicationEndDates:",[...MedicationsEnddates]);
         const SortedDates = [...MedicationsDates].sort((a, b) => a - b);
-        const EndDates = [...MedicationsEnddates].sort((a, b) => b - a);
+        const EndDates = [...MedicationsEnddates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
         const today = new Date();
         const startDate = new Date(SortedDates[0]);
+        console.log("Start Date:",startDate)
         const EndDate = new Date(EndDates[0]);
+        console.log("EndDate:",EndDate);
         const msDiff = today.getTime() - startDate.getTime();
         const days = Math.floor(msDiff / (1000 * 60 * 60 * 24));
         const totalTakenDays = [...datesTaken].length;
@@ -156,9 +159,8 @@ const CaretakerDashboard = () => {
         const TotalPrescribedDays = Math.floor(
           (EndDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
         );
-        const pendingMedicationDays =
-          TotalPrescribedDays - totalMissedDays - totalTakenDays;
-        const AdherenceRate = (totalTakenDays / TotalPrescribedDays) * 100;
+        const pendingMedicationDays = TotalPrescribedDays - totalMissedDays - totalTakenDays;
+        const AdherenceRate = ((totalTakenDays / TotalPrescribedDays) * 100).toFixed(1);
         setMissedDays(totalMissedDays);
         setTakenDays(totalTakenDays);
         setAdherenceRate(AdherenceRate);
@@ -221,7 +223,7 @@ const CaretakerDashboard = () => {
               </div>
               <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
                 <div className="text-2xl font-bold">{takenDoses}</div>
-                <div className="text-white/80">Taken This Week</div>
+                <div className="text-white/80">Taken</div>
               </div>
             </div>
           </div>
@@ -371,6 +373,11 @@ const CaretakerDashboard = () => {
                       (MedicationLog) => MedicationLog.taken === true
                     );
                     if (allTaken && medicationLogsByDate.length > 0) {
+                      const validMeds = medicationdata.filter((med)=>{
+                        if((new Date(med.start_date) <= new Date(date))&&(new Date(med.end_date) >= new Date(date))){
+                          return med
+                        }
+                      })
                       return (
                         <div className="card w-100 mb-3">
                           <div className="card-body">
@@ -378,7 +385,7 @@ const CaretakerDashboard = () => {
                               <div>
                                 
                                 <h5 className="card-title mb-1">
-                                {medicationdata.map((medicationdata)=>medicationdata.name).join(", ")}
+                                {validMeds.map((medicationdata)=>medicationdata.name).join(", ")}
                                 </h5>
                                 <p className="card-text text-muted mb-0">
                                   Taken on: {date}

@@ -65,15 +65,6 @@ const PatientDashboard = () => {
   const getStreakCount = () => {
     let streak = 0;
     let currentDate = new Date(today);
-    
-    // while (takenDates.has(format(currentDate, 'yyyy-MM-dd')) && streak < 30) {
-    //   streak++;
-    //   currentDate.setDate(currentDate.getDate() - 1);
-    // }
-    
-    // return streak;
-
-    // Iterate backwards from today to count consecutive taken days
     for (let i = 0; i < 30; i++) {
       const dateStr = format(currentDate, "yyyy-MM-dd");
       if (takenDates.has(dateStr)) {
@@ -89,26 +80,6 @@ const PatientDashboard = () => {
 
   };
 
-  // const getDayClassName = (date: Date) => {
-  //   const dateStr = format(date, 'yyyy-MM-dd');
-  //   const isPast = isBefore(date, startOfDay(today));
-  //   const isCurrentDay = isToday(date);
-  //   const isTaken = takenDates.has(dateStr);
-    
-  //   let className = "";
-    
-  //   if (isCurrentDay) {
-  //     className += " bg-blue-100 border-blue-300 ";
-  //   }
-    
-  //   if (isTaken) {
-  //     className += " bg-green-100 text-green-800 ";
-  //   } else if (isPast) {
-  //     className += " bg-red-50 text-red-600 ";
-  //   }
-    
-  //   return className;
-  // };
 const getDayClassName = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const isPast = isBefore(date, startOfDay(today));

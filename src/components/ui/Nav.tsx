@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React from 'react';
 const Nav:React.FC  = ()=>{
     return(
@@ -9,7 +10,7 @@ const Nav:React.FC  = ()=>{
               <span className="text-white font-bold text-lg">M</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">MediCare Companion</h1>
+              <h1 className="text-xl font-bold text-foreground"><Link to="/">MediCare Companion</Link></h1>
               <p className="text-sm text-muted-foreground">
               </p>
             </div>
