@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import {Users,Bell,Calendar as CalendarIcon,Mail,AlertTriangle,Check,Clock,Camera, CaptionsOff,} from "lucide-react";
+import {Users,Bell,Calendar as CalendarIcon,Mail,AlertTriangle,Check,Clock,Camera,CaptionsOff} from "lucide-react";
 import NotificationSettings from "./NotificationSettings";
 import { format, subDays, isToday, isBefore, startOfDay } from "date-fns";
 import Nav from "./ui/Nav";
@@ -21,27 +21,29 @@ type TakenDate = {
 const CaretakerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [streakCount,setCurrentStreak] = useState(0);
-  const [MissedDays,setMissedDays] = useState(0);
+  const [streakCount, setCurrentStreak] = useState(0);
+  const [MissedDays, setMissedDays] = useState(0);
   const [medicatioLogsData, setMedicationLogsData] = useState([]);
   const [patientname, setPatientname] = useState();
-  const [takenDays,setTakenDays] = useState(0);
-  const [remainingDays,setRemainingDays] = useState();
-  const [AdherenceRate,setAdherenceRate] = useState();
+  const [takenDays, setTakenDays] = useState(0);
+  const [remainingDays, setRemainingDays] = useState();
+  const [AdherenceRate, setAdherenceRate] = useState();
   const [takendates, setTakenDates] = useState(new Set());
-  const [dailyMedication,setDailyMedication] = useState( {
+  const [medicationdata,setMedicationData] = useState([])
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [dailyMedication, setDailyMedication] = useState({
     name: "Daily Medication Set",
     time: "8:00 AM",
-    status: "pending"
-  })
+    status: "pending",
+  });
   // Mock data for demonstration
   const patientName = patientname;
   const adherenceRate = AdherenceRate;
   const currentStreak = streakCount;
   const missedDoses = MissedDays;
-  const takenDoses = takenDays
+  const takenDoses = takenDays;
   const RemainingDays = remainingDays;
- 
+
   // Mock data for taken medications (same as in PatientDashboard)
   const takenDates = new Set([
     "2024-06-10",
@@ -62,7 +64,6 @@ const CaretakerDashboard = () => {
     { date: "2024-06-06", taken: true, time: "8:20 AM", hasPhoto: false },
   ];
 
- 
   const handleSendReminderEmail = () => {
     console.log("Sending reminder email to patient...");
     // Here you would implement email sending functionality
@@ -88,6 +89,8 @@ const CaretakerDashboard = () => {
         .select("*")
         .eq("patient_id", id);
       setMedicationLogsData(data);
+      const {data:Medicationdata,error:errorlog} = await supabase.from("Medications").select("*").eq("patient_id",id);
+      setMedicationData(Medicationdata);
       const datesTaken = new Set<string>();
       data.map((medLogs) => {
         if (medLogs.taken) {
@@ -98,63 +101,72 @@ const CaretakerDashboard = () => {
       const Patientdata = await supabase.from("Users").select("*").eq("id", id);
       const Patientusername = Patientdata.data[0].username;
       setPatientname(Patientusername);
-      setTakenDates(datesTaken);   
-      const todaysDate = format(new Date(), "yyyy-MM-dd")
-      const todaysPatientLogs = data.filter((patientdata)=>{
+      setTakenDates(datesTaken);
+      const todaysDate = format(new Date(), "yyyy-MM-dd");
+      const todaysPatientLogs = data.filter((patientdata) => {
         const date = format(new Date(patientdata.date), "yyyy-MM-dd");
-        return date === todaysDate
-      })
-     const Status = (todaysPatientLogs.every((data)=>data.taken == true) && (todaysPatientLogs.length > 0))?'completed':'pending'
-     setDailyMedication((prev)=>({...prev,status:Status}))
+        return date === todaysDate;
+      });
+      const Status =
+        todaysPatientLogs.every((data) => data.taken == true) &&
+        todaysPatientLogs.length > 0
+          ? "completed"
+          : "pending";
+      setDailyMedication((prev) => ({ ...prev, status: Status }));
 
-     const getCurrentStreak = ()=>{
-      let streak = 0;
-      let currentDate = new Date()
-      console.log("Getting From Strak:",datesTaken);
-      for(let i=0;i<=30;i++){
-        const dateStr = format(currentDate,"yyyy-MM-dd")
-        if(datesTaken.has(dateStr)){
-          streak++;
-          currentDate.setDate(currentDate.getDate() - 1);
-        }else{
-          break;
+      const getCurrentStreak = () => {
+        let streak = 0;
+        let currentDate = new Date();
+        console.log("Getting From Strak:", datesTaken);
+        for (let i = 0; i <= 30; i++) {
+          const dateStr = format(currentDate, "yyyy-MM-dd");
+          if (datesTaken.has(dateStr)) {
+            streak++;
+            currentDate.setDate(currentDate.getDate() - 1);
+          } else {
+            break;
+          }
         }
-      }
-      console.log("Streak",streak)
-      setCurrentStreak(streak);
-      return streak;
-      
-
-    }
-    getCurrentStreak();
-    const calculateMedicationStats = async ()=> {
-      const UsersMedicationData = await supabase.from('Medications').select('*').eq('patient_id',id)
-      const patientMedications = UsersMedicationData.data;
-      const MedicationsDates = new Set(patientMedications.map((medication)=>medication.start_date));
-      const MedicationsEnddates = new Set(patientMedications.map((medication)=>medication.end_date));
-      const  SortedDates = [...MedicationsDates].sort((a,b)=>a-b);
-      const EndDates = [...MedicationsEnddates].sort((a,b)=> b-a);
-      const today = new Date()
-      const startDate = new Date(SortedDates[0]);
-      const EndDate = new Date(EndDates[0]);
-      const msDiff = today.getTime() - startDate.getTime();
-      const days = Math.floor(msDiff/(1000 * 60 * 60 * 24))
-      const totalTakenDays = [...datesTaken].length
-      const totalMissedDays = days - totalTakenDays
-      const TotalPrescribedDays = Math.floor((EndDate.getTime() - startDate.getTime())/(1000 * 60 * 60 * 24))
-      const pendingMedicationDays = TotalPrescribedDays - totalMissedDays - totalTakenDays
-      const AdherenceRate = (totalTakenDays)/(TotalPrescribedDays) * 100;
-      setMissedDays(totalMissedDays);
-      setTakenDays(totalTakenDays);
-      setAdherenceRate(AdherenceRate);
-      setRemainingDays(pendingMedicationDays);
-
-    }
-    calculateMedicationStats();
-
+        console.log("Streak", streak);
+        setCurrentStreak(streak);
+        return streak;
+      };
+      getCurrentStreak();
+      const calculateMedicationStats = async () => {
+        const UsersMedicationData = await supabase
+          .from("Medications")
+          .select("*")
+          .eq("patient_id", id);
+        const patientMedications = UsersMedicationData.data;
+        const MedicationsDates = new Set(
+          patientMedications.map((medication) => medication.start_date)
+        );
+        const MedicationsEnddates = new Set(
+          patientMedications.map((medication) => medication.end_date)
+        );
+        const SortedDates = [...MedicationsDates].sort((a, b) => a - b);
+        const EndDates = [...MedicationsEnddates].sort((a, b) => b - a);
+        const today = new Date();
+        const startDate = new Date(SortedDates[0]);
+        const EndDate = new Date(EndDates[0]);
+        const msDiff = today.getTime() - startDate.getTime();
+        const days = Math.floor(msDiff / (1000 * 60 * 60 * 24));
+        const totalTakenDays = [...datesTaken].length;
+        const totalMissedDays = days - totalTakenDays;
+        const TotalPrescribedDays = Math.floor(
+          (EndDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const pendingMedicationDays =
+          TotalPrescribedDays - totalMissedDays - totalTakenDays;
+        const AdherenceRate = (totalTakenDays / TotalPrescribedDays) * 100;
+        setMissedDays(totalMissedDays);
+        setTakenDays(totalTakenDays);
+        setAdherenceRate(AdherenceRate);
+        setRemainingDays(pendingMedicationDays);
+      };
+      calculateMedicationStats();
     };
     fetchData();
-    
   }, []);
   const getDayClassName = (date) => {
     const today = new Date();
@@ -208,9 +220,7 @@ const CaretakerDashboard = () => {
                 <div className="text-white/80">Missed </div>
               </div>
               <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                <div className="text-2xl font-bold">
-                {takenDoses}
-                </div>
+                <div className="text-2xl font-bold">{takenDoses}</div>
                 <div className="text-white/80">Taken This Week</div>
               </div>
             </div>
@@ -317,11 +327,15 @@ const CaretakerDashboard = () => {
                         <div className="text-muted-foreground">Taken</div>
                       </div>
                       <div>
-                        <div className="font-medium text-red-600">{missedDoses} days</div>
+                        <div className="font-medium text-red-600">
+                          {missedDoses} days
+                        </div>
                         <div className="text-muted-foreground">Missed</div>
                       </div>
                       <div>
-                        <div className="font-medium text-blue-600">{RemainingDays} days</div>
+                        <div className="font-medium text-blue-600">
+                          {RemainingDays} days
+                        </div>
                         <div className="text-muted-foreground">Remaining</div>
                       </div>
                     </div>
@@ -349,115 +363,34 @@ const CaretakerDashboard = () => {
                   <CardTitle>Recent Medication Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* <div className="space-y-4">
-                    {recentActivity.map((activity, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              activity.taken ? "bg-green-100" : "bg-red-100"
-                            }`}
-                          >
-                            {activity.taken ? (
-                              <Check className="w-5 h-5 text-green-600" />
-                            ) : (
-                              <AlertTriangle className="w-5 h-5 text-red-600" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {format(new Date(activity.date), "EEEE, MMMM d")}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {activity.taken
-                                ? `Taken at ${activity.time}`
-                                : "Medication missed"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {activity.hasPhoto && (
-                            <Badge variant="outline">
-                              <Camera className="w-3 h-3 mr-1" />
-                              Photo
-                            </Badge>
-                          )}
-                          <Badge
-                            variant={
-                              activity.taken ? "secondary" : "destructive"
-                            }
-                          >
-                            {activity.taken ? "Completed" : "Missed"}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div> */}
-                  {/* <div className="space-y-4">
-                    {recentActivity.map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activity.taken ? "bg-green-100" : "bg-red-100"}`}>
-                            {activity.taken ? (
-                              <Check className="w-5 h-5 text-green-600" />
-                            ) : (
-                              <AlertTriangle className="w-5 h-5 text-red-600" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {format(new Date(activity.date), "EEEE, MMMM d")}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {activity.taken? `Taken at ${activity.time}`: "Medication missed"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {activity.hasPhoto && (
-                            <Badge variant="outline">
-                              <Camera className="w-3 h-3 mr-1" />
-                              Photo
-                            </Badge>
-                          )}
-                          <Badge
-                            variant={
-                              activity.taken ? "secondary" : "destructive"
-                            }
-                          >
-                            {activity.taken ? "Completed" : "Missed"}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div> */}
-                  {medicatioLogsData.map((item) => {
-                    console.log(item);
-                    console.log(takendates);
-                    console.log([...takendates]);
-                    const relevantSets = [...takendates].filter(
-                      (date:string) => date === item.date
+                  {[...takendates].map((date) => {
+                    const medicationLogsByDate = medicatioLogsData.filter(
+                      (MedicationLog) => MedicationLog.date === date
                     );
-                    console.log(relevantSets);
-                    const allTaken = relevantSets.every(
-                      (set: TakenDate) => set.taken === true
-
+                    const allTaken = medicationLogsByDate.every(
+                      (MedicationLog) => MedicationLog.taken === true
                     );
-                    console.log(allTaken);
-                    if (allTaken && relevantSets.length > 0) {
+                    if (allTaken && medicationLogsByDate.length > 0) {
                       return (
-                        <div className="card" key={item.date}>
-                          <p>Date: {item.date}</p>
+                        <div className="card w-100 mb-3">
+                          <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start">
+                              <div>
+                                
+                                <h5 className="card-title mb-1">
+                                {medicationdata.map((medicationdata)=>medicationdata.name).join(", ")}
+                                </h5>
+                                <p className="card-text text-muted mb-0">
+                                  Taken on: {date}
+                                </p>
+                              </div>
+                              <span className="badge bg-success">Completed</span>
+                            </div>
+                          </div>
                         </div>
                       );
                     }
-
-                    return null;
                   })}
-                 
                 </CardContent>
               </Card>
             </TabsContent>
