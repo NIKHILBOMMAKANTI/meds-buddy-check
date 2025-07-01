@@ -70,9 +70,16 @@ const handleupdatebtn = (Medicationid)=>{
                   </div>
                   <div>
                     <p className="mb-0 fw-semibold">{Medication.name}</p>
+                    <div>
+                    <small className="text-muted">Start Date:</small>
+                    <small className="text-muted"> {Medication.start_date}</small>
+                    </div>
+                    <div>
                     <small className="text-muted">End Date:</small>
                     <small className="text-muted"> {Medication.end_date}</small>
+                    </div>
                   </div>
+
                 </div>
 
                 <div className="d-flex align-items-center gap-2">
